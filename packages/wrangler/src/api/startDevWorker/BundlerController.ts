@@ -185,6 +185,7 @@ export class BundlerController extends Controller {
 
 	async #startCustomBuild(config: StartDevWorkerOptions) {
 		await this.#customBuildWatcher?.close();
+		this.#customBuildWatcher = undefined;
 		this.#customBuildAborter?.abort();
 
 		if (!config.build?.custom?.command) {
@@ -195,6 +196,11 @@ export class BundlerController extends Controller {
 
 		// This is always present if a custom command is provided, defaulting to `./src`
 		assert(pathsToWatch, "config.build.custom.watch");
+
+		if (config.dev.watch === false) {
+			await this.#runCustomBuild(config, String(pathsToWatch));
+			return;
+		}
 
 		this.#customBuildWatcher = watch(pathsToWatch, {
 			persistent: true,
@@ -278,6 +284,7 @@ export class BundlerController extends Controller {
 					config.compatibilityDate,
 					config.compatibilityFlags
 				),
+				watch: config.dev.watch ?? true,
 				defineNavigatorUserAgent: isNavigatorDefined(
 					config.compatibilityDate,
 					config.compatibilityFlags
@@ -308,6 +315,7 @@ export class BundlerController extends Controller {
 	#assetsWatcher?: ReturnType<typeof watch>;
 	async #ensureWatchingAssets(config: StartDevWorkerOptions) {
 		await this.#assetsWatcher?.close();
+		this.#assetsWatcher = undefined;
 
 		const debouncedRefreshBundle = debounce(() => {
 			if (this.#currentBundle) {
@@ -315,7 +323,7 @@ export class BundlerController extends Controller {
 			}
 		});
 
-		if (config.assets?.directory) {
+		if (config.dev.watch !== false && config.assets?.directory) {
 			this.#assetsWatcher = watch(config.assets.directory, {
 				persistent: true,
 				ignoreInitial: true,
