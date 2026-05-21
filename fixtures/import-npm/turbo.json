@@ -11,7 +11,7 @@
 			"dependsOn": ["_clean_install"]
 		},
 		"type:tests": {
-			"dependsOn": ["_clean_install"]
+			"dependsOn": ["_clean_install", "wrangler#build"]
 		},
 		"test:ci": {
 			"dependsOn": ["_clean_install", "wrangler#build"]
