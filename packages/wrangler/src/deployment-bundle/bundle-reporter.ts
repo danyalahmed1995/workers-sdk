@@ -5,13 +5,13 @@ import { logger } from "../logger";
 import type { CfModule } from "@cloudflare/workers-utils";
 
 const ONE_KIB_BYTES = 1024;
-// Current max is 3 MiB for free accounts, 10 MiB for paid accounts.
+// Max uncompressed Worker size is 64 MiB for all accounts.
 // See https://developers.cloudflare.com/workers/platform/limits/#worker-size
-const MAX_GZIP_SIZE_BYTES = 3 * ONE_KIB_BYTES * ONE_KIB_BYTES;
+const MAX_UNCOMPRESSED_SIZE_BYTES = 64 * ONE_KIB_BYTES * ONE_KIB_BYTES;
 
 async function getSize(modules: Pick<CfModule, "content">[]) {
 	const gzipSize = gzipSync(
-		await new Blob(modules.map((file) => file.content)).arrayBuffer()
+		await new Blob(modules.map((file) => file.content)).arrayBuffer(),
 	).byteLength;
 	const aggregateSize = new Blob(modules.map((file) => file.content)).size;
 
@@ -23,7 +23,7 @@ export async function printBundleSize(
 		name: string;
 		content: string;
 	},
-	modules: CfModule[]
+	modules: CfModule[],
 ) {
 	const { size, gzipSize } = await getSize([...modules, main]);
 
@@ -31,7 +31,7 @@ export async function printBundleSize(
 		gzipSize / ONE_KIB_BYTES
 	).toFixed(2)} KiB`;
 
-	const percentage = (gzipSize / MAX_GZIP_SIZE_BYTES) * 100;
+	const percentage = (size / MAX_UNCOMPRESSED_SIZE_BYTES) * 100;
 
 	const colorizedReport =
 		percentage > 90
